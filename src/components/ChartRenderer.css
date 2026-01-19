@@ -1,0 +1,137 @@
+.chart-container {
+  width: 100%;
+  margin: 16px 0;
+  background: linear-gradient(135deg, var(--bg-tertiary, #1e293b) 0%, var(--bg-secondary, #0f172a) 100%);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.15),
+    0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.chart-title {
+  text-align: center;
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #f1f5f9);
+  letter-spacing: -0.01em;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 320px;
+  min-height: 280px;
+  min-width: 300px;
+  display: block;
+}
+
+/* Tooltip customization */
+.recharts-tooltip-wrapper {
+  z-index: 1000 !important;
+}
+
+.recharts-default-tooltip {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  padding: 10px 14px !important;
+}
+
+.recharts-tooltip-label {
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  margin-bottom: 6px !important;
+}
+
+.recharts-tooltip-item {
+  color: #475569 !important;
+  padding: 3px 0 !important;
+}
+
+/* Legend customization */
+.recharts-legend-wrapper {
+  padding-top: 10px !important;
+}
+
+.recharts-legend-item-text {
+  color: #64748b !important;
+  font-size: 12px !important;
+}
+
+/* Animation for bars */
+.recharts-bar-rectangle {
+  transition: opacity 0.2s ease;
+}
+
+.recharts-bar-rectangle:hover {
+  opacity: 0.85;
+}
+
+/* Pie chart label adjustment for small containers */
+.recharts-pie-label-text {
+  font-size: 11px;
+  fill: #475569;
+}
+
+/* Line dot animation */
+.recharts-dot {
+  transition: r 0.2s ease;
+}
+
+/* Grid lines subtle styling */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #f1f5f9;
+}
+
+/* Axis labels */
+.recharts-xAxis .recharts-text,
+.recharts-yAxis .recharts-text {
+  fill: #64748b;
+  font-size: 11px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .chart-container {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: #334155;
+  }
+  
+  .chart-title {
+    color: #f1f5f9;
+  }
+  
+  .recharts-default-tooltip {
+    background: rgba(30, 41, 59, 0.98) !important;
+    border-color: #475569 !important;
+  }
+  
+  .recharts-tooltip-label {
+    color: #f1f5f9 !important;
+  }
+  
+  .recharts-tooltip-item {
+    color: #cbd5e1 !important;
+  }
+  
+  .recharts-legend-item-text {
+    color: #94a3b8 !important;
+  }
+  
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: #334155;
+  }
+}
