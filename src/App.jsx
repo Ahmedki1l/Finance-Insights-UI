@@ -6,7 +6,10 @@ import ChatContainer from './components/ChatContainer'
 import ChatInput from './components/ChatInput'
 import './App.css'
 
-const API_URL = 'http://localhost:8000/api/chat/stream'
+// Get API URL based on environment
+const API_URL = import.meta.env.VITE_DEPLOYMENT === 'prod' 
+  ? import.meta.env.VITE_BACK_END_URL_PRODUCTION 
+  : import.meta.env.VITE_BACK_END_URL_LOCAL
 
 function ChatApp() {
   const { 
