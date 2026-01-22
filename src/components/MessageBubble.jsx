@@ -38,9 +38,12 @@ function MessageBubble({ message, onDrillDown }) {
         </div>
         
         <div className="message-text">
-          {/* Thinking indicator */}
+          {/* Thinking indicator with status message */}
           {isThinking && (
             <div className="thinking-indicator">
+              {message.statusMessage ? (
+                <span className="status-text">{message.statusMessage}</span>
+              ) : null}
               <span className="thinking-dot"></span>
               <span className="thinking-dot"></span>
               <span className="thinking-dot"></span>

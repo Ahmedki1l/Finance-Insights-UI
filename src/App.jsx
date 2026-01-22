@@ -143,9 +143,19 @@ function ChatApp() {
               const data = JSON.parse(line.slice(6))
               
               switch (data.type) {
+                case 'status':
+                  // Show status message immediately while processing
+                  updateMessage(botMessageId, { 
+                    displayedAnswer: data.data + '...',
+                    statusMessage: data.data,
+                    isThinking: true,
+                    isStreaming: false
+                  })
+                  break
                 case 'text':
                   updateMessage(botMessageId, { 
                     answer: data.data,
+                    statusMessage: null,
                     isThinking: false,
                     isStreaming: true
                   })
@@ -162,7 +172,8 @@ function ChatApp() {
                 case 'done':
                   updateMessage(botMessageId, { 
                     isStreaming: false, 
-                    isThinking: false
+                    isThinking: false,
+                    statusMessage: null
                   })
                   break
                 default:
