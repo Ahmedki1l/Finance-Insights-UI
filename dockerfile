@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci 
 
 # Copy source code
 COPY . .
@@ -36,4 +36,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:80 || exit 1
 
 # Start nginx
+
 CMD ["nginx", "-g", "daemon off;"]
