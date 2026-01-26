@@ -132,18 +132,25 @@ function ChatApp() {
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+      let buffer = '' // Buffer for incomplete SSE lines
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n')
+        // Append new chunk to buffer
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Process complete lines (ending with \n)
+        const lines = buffer.split('\n')
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || ''
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6))
+              const jsonStr = line.slice(6)
+              const data = JSON.parse(jsonStr)
               
               switch (data.type) {
                 case 'status':

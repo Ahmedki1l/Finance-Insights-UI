@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import ChartRenderer from './ChartRenderer'
+import GroupedTable from './GroupedTable'
 import './MessageBubble.css'
 
 function MessageBubble({ message, onDrillDown }) {
   const { role, content, answer, displayedAnswer, chart, table, evidence, isError, isStreaming, isThinking } = message
   const [showEvidence, setShowEvidence] = useState(false)
 
-  // For user messages, use content; for bot messages, use displayedAnswer (animated) or answer
-  const displayText = role === 'user' ? content : (displayedAnswer || answer || '')
+  // For user messages, use content; for bot messages, use final answer directly (no streaming animation)
+  const displayText = role === 'user' ? content : (answer || '')
 
-  // Show cursor when streaming and text is still being animated
-  const showCursor = isStreaming && displayedAnswer !== answer
+  // Streaming cursor disabled
+  const showCursor = false
 
   return (
     <div className={`message ${role} ${isError ? 'error' : ''}`}>
@@ -67,38 +68,50 @@ function MessageBubble({ message, onDrillDown }) {
           />
         )}
 
-        {/* Structured Table */}
-        {table && !isStreaming && (
-          <div className="table-container">
-            <div className="table-header-bar">
-              <span className="table-title">{table.title}</span>
-              <span className="table-count">{table.rows.length} rows</span>
-            </div>
-            <div className="table-scroll">
-              <table className="styled-table">
-                <thead className="table-header">
-                  <tr>
-                    {table.columns.map((col, idx) => (
-                      <th key={idx} className="table-header-cell">
-                        {col.replace(/_/g, ' ')}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="table-body">
-                  {table.rows.map((row, rowIdx) => (
-                    <tr key={rowIdx} className="table-row">
-                      {table.columns.map((col, colIdx) => (
-                        <td key={colIdx} className="table-cell">
-                          {row[col]}
-                        </td>
+        {/* Structured Table - supports both flat and grouped modes */}
+        {table && (
+          <>
+            {table.isGrouped ? (
+              <GroupedTable 
+                groupedData={table.groupedData}
+                columns={table.columns}
+                summaryColumns={table.summaryColumns}
+                title={table.title}
+                groupKeyLabel={table.groupKeyLabel}
+              />
+            ) : table.rows && (
+            <div className="table-container">
+              <div className="table-header-bar">
+                <span className="table-title">{table.title}</span>
+                <span className="table-count">{table.rows.length} rows</span>
+              </div>
+              <div className="table-scroll">
+                <table className="styled-table">
+                  <thead className="table-header">
+                    <tr>
+                      {table.columns.map((col, idx) => (
+                        <th key={idx} className="table-header-cell">
+                          {col.replace(/_/g, ' ')}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="table-body">
+                    {table.rows.map((row, rowIdx) => (
+                      <tr key={rowIdx} className="table-row">
+                        {table.columns.map((col, colIdx) => (
+                          <td key={colIdx} className="table-cell">
+                            {row[col]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+            )}
+          </>
         )}
 
         {/* Evidence Section */}

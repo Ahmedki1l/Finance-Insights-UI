@@ -1,0 +1,225 @@
+/* GroupedTable Styles */
+.grouped-table-container {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.grouped-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15));
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.grouped-table-title {
+  font-weight: 600;
+  color: #10b981;
+  font-size: 0.95rem;
+}
+
+.grouped-table-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.grouped-table-controls button {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.grouped-table-controls button:hover {
+  background: rgba(99, 102, 241, 0.4);
+  color: #fff;
+}
+
+.group-count {
+  background: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.grouped-table-scroll {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Individual Group */
+.table-group {
+  border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.table-group.expanded {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+/* Group Header - Clickable */
+.group-header {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  gap: 16px;
+}
+
+.group-header:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.group-expander {
+  display: flex;
+  align-items: center;
+}
+
+.expander-icon {
+  width: 20px;
+  height: 20px;
+  fill: #a5b4fc;
+  transition: transform 0.2s;
+}
+
+.expander-icon.open {
+  transform: rotate(90deg);
+}
+
+.group-key {
+  min-width: 150px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.group-key-label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.group-key-value {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+
+.group-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  min-width: 100px;
+}
+
+.summary-label {
+  color: #64748b;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.row-count {
+  color: #64748b;
+  font-size: 0.7rem;
+  background: rgba(148, 163, 184, 0.2);
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+/* Detail Table */
+.group-details {
+  padding: 0 16px 16px 40px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.detail-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.detail-table td {
+  padding: 10px 12px;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.detail-table tr:hover td {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Scrollbar */
+.grouped-table-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.grouped-table-scroll::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.grouped-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 3px;
+}
+
+.grouped-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}

@@ -172,9 +172,8 @@ const ChartRenderer = ({ chartData, onDrillDown }) => {
               fill="#8884d8"
               dataKey={yKey}
               nameKey={displayKey}
-              label={({ payload }) => {
+              label={({ payload, percent }) => {
                 const displayName = payload[displayKey];
-                const percent = payload.percent;
                 return `${displayName}: ${(percent * 100).toFixed(0)}%`;
               }}
               onClick={handleChartClick}

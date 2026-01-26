@@ -35,6 +35,68 @@ function safeJsonParse(str, fallback = null) {
 }
 
 /**
+ * Safe localStorage setItem that handles quota errors
+ * Also strips large data (table, chart) from messages to save space
+ */
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      console.warn('localStorage quota exceeded, attempting to free space...');
+      // Try to clear old conversations to make space
+      const conversations = safeJsonParse(localStorage.getItem(STORAGE_KEYS.CONVERSATIONS), []);
+      if (conversations.length > 5) {
+        // Remove oldest non-pinned conversations
+        const toKeep = conversations.slice(0, 5);
+        const toRemove = conversations.slice(5);
+        toRemove.forEach(c => {
+          if (!c.isPinned) {
+            localStorage.removeItem(STORAGE_KEYS.CONVERSATION_PREFIX + c.id);
+          }
+        });
+        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(toKeep));
+        // Retry the save
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (e2) {
+          console.error('Could not save to localStorage even after cleanup:', e2);
+        }
+      }
+    }
+    console.error('localStorage error:', e);
+    return false;
+  }
+}
+
+/**
+ * Strip large data from message before storage to save space
+ */
+function stripLargeData(message) {
+  const stripped = { ...message };
+  // Don't store large table/chart data in localStorage
+  if (stripped.table && stripped.table.rows && stripped.table.rows.length > 10) {
+    stripped.table = { ...stripped.table, rows: stripped.table.rows.slice(0, 10), truncatedForStorage: true };
+  }
+  if (stripped.table && stripped.table.groupedData && stripped.table.groupedData.length > 5) {
+    stripped.table = { 
+      ...stripped.table, 
+      groupedData: stripped.table.groupedData.slice(0, 5).map(g => ({
+        ...g,
+        rows: g.rows ? g.rows.slice(0, 5) : []
+      })),
+      truncatedForStorage: true 
+    };
+  }
+  if (stripped.chart && stripped.chart.data && stripped.chart.data.labels && stripped.chart.data.labels.length > 20) {
+    stripped.chart = { truncatedForStorage: true };
+  }
+  return stripped;
+}
+
+/**
  * Get all conversations metadata
  * @returns {Array} Array of conversation metadata objects
  */
@@ -155,8 +217,10 @@ export function addMessage(conversationId, message) {
     timestamp: message.timestamp || new Date().toISOString()
   };
   
-  messages.push(newMessage);
-  localStorage.setItem(messagesKey, JSON.stringify(messages));
+  // Strip large data before storing to save space
+  const strippedMessage = stripLargeData(newMessage);
+  messages.push(strippedMessage);
+  safeLocalStorageSet(messagesKey, JSON.stringify(messages));
   
   // Update conversation metadata
   const conversations = getConversations() || [];
@@ -171,7 +235,7 @@ export function addMessage(conversationId, message) {
       conversations[convIndex].title = message.content.substring(0, 50) + (message.content.length > 50 ? '...' : '');
     }
     
-    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
+    safeLocalStorageSet(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
   }
   
   return newMessage;
@@ -191,8 +255,10 @@ export function updateMessage(conversationId, messageId, updates) {
   const index = messages.findIndex(m => m.id === messageId);
   if (index === -1) return null;
   
-  messages[index] = { ...messages[index], ...updates };
-  localStorage.setItem(messagesKey, JSON.stringify(messages));
+  // Strip large data before storing updates
+  const strippedUpdates = stripLargeData(updates);
+  messages[index] = { ...messages[index], ...strippedUpdates };
+  safeLocalStorageSet(messagesKey, JSON.stringify(messages));
   
   return messages[index];
 }
