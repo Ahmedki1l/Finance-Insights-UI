@@ -1,244 +1,165 @@
 /**
- * LocalStorage Service for Chat History Management
+ * Storage Service - Backend API Storage
  * 
- * Provides abstraction layer over localStorage for managing
- * conversations and messages in the Finance Chatbot PoC.
+ * Provides abstraction layer for managing conversations and messages
+ * via backend API (JSON file storage, MongoDB-ready).
+ * 
+ * All functions are async and use fetch to call backend endpoints.
  */
 
-// Storage keys
-const STORAGE_KEYS = {
-  CONVERSATIONS: 'finance_chatbot_conversations',
-  CURRENT_CONVERSATION: 'finance_chatbot_current_conversation_id',
-  CONVERSATION_PREFIX: 'finance_chatbot_conversation_'
-};
+const API_BASE = 'http://localhost:8000';
 
 /**
- * Generate a UUID v4
+ * Generate a UUID v4 (for temporary IDs before server assigns one)
  */
-function generateId() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+function generateTempId() {
+  return 'temp-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 }
 
-/**
- * Safe JSON parse with fallback
- */
-function safeJsonParse(str, fallback = null) {
-  try {
-    return JSON.parse(str);
-  } catch (e) {
-    return fallback;
-  }
-}
-
-/**
- * Safe localStorage setItem that handles quota errors
- * Also strips large data (table, chart) from messages to save space
- */
-function safeLocalStorageSet(key, value) {
-  try {
-    localStorage.setItem(key, value);
-    return true;
-  } catch (e) {
-    if (e.name === 'QuotaExceededError' || e.code === 22) {
-      console.warn('localStorage quota exceeded, attempting to free space...');
-      // Try to clear old conversations to make space
-      const conversations = safeJsonParse(localStorage.getItem(STORAGE_KEYS.CONVERSATIONS), []);
-      if (conversations.length > 5) {
-        // Remove oldest non-pinned conversations
-        const toKeep = conversations.slice(0, 5);
-        const toRemove = conversations.slice(5);
-        toRemove.forEach(c => {
-          if (!c.isPinned) {
-            localStorage.removeItem(STORAGE_KEYS.CONVERSATION_PREFIX + c.id);
-          }
-        });
-        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(toKeep));
-        // Retry the save
-        try {
-          localStorage.setItem(key, value);
-          return true;
-        } catch (e2) {
-          console.error('Could not save to localStorage even after cleanup:', e2);
-        }
-      }
-    }
-    console.error('localStorage error:', e);
-    return false;
-  }
-}
-
-/**
- * Strip large data from message before storage to save space
- */
-function stripLargeData(message) {
-  const stripped = { ...message };
-  // Don't store large table/chart data in localStorage
-  if (stripped.table && stripped.table.rows && stripped.table.rows.length > 10) {
-    stripped.table = { ...stripped.table, rows: stripped.table.rows.slice(0, 10), truncatedForStorage: true };
-  }
-  if (stripped.table && stripped.table.groupedData && stripped.table.groupedData.length > 5) {
-    stripped.table = { 
-      ...stripped.table, 
-      groupedData: stripped.table.groupedData.slice(0, 5).map(g => ({
-        ...g,
-        rows: g.rows ? g.rows.slice(0, 5) : []
-      })),
-      truncatedForStorage: true 
-    };
-  }
-  if (stripped.chart && stripped.chart.data && stripped.chart.data.labels && stripped.chart.data.labels.length > 20) {
-    stripped.chart = { truncatedForStorage: true };
-  }
-  return stripped;
-}
+// ============================================================================
+// Conversation Operations
+// ============================================================================
 
 /**
  * Get all conversations metadata
- * @returns {Array} Array of conversation metadata objects
+ * @returns {Promise<Array>} Array of conversation metadata objects
  */
-export function getConversations() {
-  const data = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-  return safeJsonParse(data, []);
+export async function getConversations() {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations`);
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error('getConversations error:', error);
+    return [];
+  }
 }
 
 /**
  * Get a specific conversation with its messages
  * @param {string} id - Conversation ID
- * @returns {Object|null} Conversation with messages or null
+ * @returns {Promise<Object|null>} Conversation with messages or null
  */
-export function getConversation(id) {
-  const conversations = getConversations();
-  const metadata = conversations.find(c => c.id === id);
-  
-  if (!metadata) return null;
-  
-  const messagesKey = STORAGE_KEYS.CONVERSATION_PREFIX + id;
-  const messages = safeJsonParse(localStorage.getItem(messagesKey), []);
-  
-  return {
-    ...metadata,
-    messages
-  };
+export async function getConversation(id) {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations/${id}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    // Map _id to id for frontend compatibility
+    if (data._id) {
+      data.id = data._id;
+    }
+    if (data.messages) {
+      data.messages = data.messages.map(m => ({ ...m, id: m._id || m.id }));
+    }
+    return data;
+  } catch (error) {
+    console.error('getConversation error:', error);
+    return null;
+  }
 }
 
 /**
  * Create a new conversation
  * @param {string} title - Optional title (defaults to "New Chat")
- * @returns {Object} Created conversation metadata
+ * @returns {Promise<Object>} Created conversation metadata
  */
-export function createConversation(title = 'New Chat') {
-  const conversations = getConversations() || [];
-  
-  const newConversation = {
-    id: generateId(),
-    title: title.substring(0, 50), // Limit title length
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    isPinned: false,
-    messageCount: 0
-  };
-  
-  // Add to beginning of list (most recent first)
-  conversations.unshift(newConversation);
-  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
-  
-  // Initialize empty messages array
-  localStorage.setItem(
-    STORAGE_KEYS.CONVERSATION_PREFIX + newConversation.id, 
-    JSON.stringify([])
-  );
-  
-  return newConversation;
+export async function createConversation(title = 'New Chat') {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title.substring(0, 50) })
+    });
+    if (!response.ok) throw new Error('Failed to create conversation');
+    const data = await response.json();
+    return { ...data, id: data._id || data.id };
+  } catch (error) {
+    console.error('createConversation error:', error);
+    // Fallback to local-only conversation
+    return {
+      id: generateTempId(),
+      title: title.substring(0, 50),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isPinned: false,
+      messageCount: 0
+    };
+  }
 }
 
 /**
  * Update conversation metadata
  * @param {string} id - Conversation ID
  * @param {Object} updates - Fields to update (title, isPinned)
- * @returns {Object|null} Updated conversation or null
+ * @returns {Promise<Object|null>} Updated conversation or null
  */
-export function updateConversation(id, updates) {
-  const conversations = getConversations() || [];
-  const index = conversations.findIndex(c => c.id === id);
-  
-  if (index === -1) return null;
-  
-  const updated = {
-    ...conversations[index],
-    ...updates,
-    updatedAt: new Date().toISOString()
-  };
-  
-  conversations[index] = updated;
-  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
-  
-  return updated;
+export async function updateConversation(id, updates) {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return { ...data, id: data._id || data.id };
+  } catch (error) {
+    console.error('updateConversation error:', error);
+    return null;
+  }
 }
 
 /**
  * Delete a conversation and its messages
  * @param {string} id - Conversation ID
- * @returns {boolean} Success status
+ * @returns {Promise<boolean>} Success status
  */
-export function deleteConversation(id) {
-  const conversations = getConversations() || [];
-  const filtered = conversations.filter(c => c.id !== id);
-  
-  if (filtered.length === conversations.length) return false;
-  
-  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(filtered));
-  localStorage.removeItem(STORAGE_KEYS.CONVERSATION_PREFIX + id);
-  
-  // Clear current if it was the deleted one
-  if (getCurrentConversationId() === id) {
-    setCurrentConversationId(null);
+export async function deleteConversation(id) {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations/${id}`, {
+      method: 'DELETE'
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('deleteConversation error:', error);
+    return false;
   }
-  
-  return true;
 }
+
+// ============================================================================
+// Message Operations
+// ============================================================================
 
 /**
  * Add a message to a conversation
  * @param {string} conversationId - Conversation ID
- * @param {Object} message - Message object
- * @returns {Object} Added message with ID
+ * @param {Object} message - Message object (full data - no truncation)
+ * @returns {Promise<Object>} Added message with ID
  */
-export function addMessage(conversationId, message) {
-  const messagesKey = STORAGE_KEYS.CONVERSATION_PREFIX + conversationId;
-  const messages = safeJsonParse(localStorage.getItem(messagesKey), []);
-  
-  const newMessage = {
-    ...message,
-    id: message.id || generateId(),
-    timestamp: message.timestamp || new Date().toISOString()
-  };
-  
-  // Strip large data before storing to save space
-  const strippedMessage = stripLargeData(newMessage);
-  messages.push(strippedMessage);
-  safeLocalStorageSet(messagesKey, JSON.stringify(messages));
-  
-  // Update conversation metadata
-  const conversations = getConversations() || [];
-  const convIndex = conversations.findIndex(c => c.id === conversationId);
-  
-  if (convIndex !== -1) {
-    conversations[convIndex].messageCount = messages.length;
-    conversations[convIndex].updatedAt = new Date().toISOString();
-    
-    // Auto-generate title from first user message if still "New Chat"
-    if (conversations[convIndex].title === 'New Chat' && message.role === 'user' && message.content) {
-      conversations[convIndex].title = message.content.substring(0, 50) + (message.content.length > 50 ? '...' : '');
-    }
-    
-    safeLocalStorageSet(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
+export async function addMessage(conversationId, message) {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message)
+    });
+    if (!response.ok) throw new Error('Failed to add message');
+    const data = await response.json();
+    return { ...data, id: data._id || data.id };
+  } catch (error) {
+    console.error('addMessage error:', error);
+    // Return message with temp ID on error
+    return {
+      ...message,
+      id: message.id || generateTempId(),
+      timestamp: message.timestamp || new Date().toISOString()
+    };
   }
-  
-  return newMessage;
 }
 
 /**
@@ -246,89 +167,88 @@ export function addMessage(conversationId, message) {
  * @param {string} conversationId - Conversation ID
  * @param {string} messageId - Message ID
  * @param {Object} updates - Fields to update
- * @returns {Object|null} Updated message or null
+ * @returns {Promise<Object|null>} Updated message or null
  */
-export function updateMessage(conversationId, messageId, updates) {
-  const messagesKey = STORAGE_KEYS.CONVERSATION_PREFIX + conversationId;
-  const messages = safeJsonParse(localStorage.getItem(messagesKey), []);
-  
-  const index = messages.findIndex(m => m.id === messageId);
-  if (index === -1) return null;
-  
-  // Strip large data before storing updates
-  const strippedUpdates = stripLargeData(updates);
-  messages[index] = { ...messages[index], ...strippedUpdates };
-  safeLocalStorageSet(messagesKey, JSON.stringify(messages));
-  
-  return messages[index];
+export async function updateMessage(conversationId, messageId, updates) {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages/${messageId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return { ...data, id: data._id || data.id };
+  } catch (error) {
+    console.error('updateMessage error:', error);
+    return null;
+  }
 }
 
 /**
  * Get all messages for a conversation
  * @param {string} conversationId - Conversation ID
- * @returns {Array} Array of messages
+ * @returns {Promise<Array>} Array of messages
  */
-export function getMessages(conversationId) {
-  const messagesKey = STORAGE_KEYS.CONVERSATION_PREFIX + conversationId;
-  return safeJsonParse(localStorage.getItem(messagesKey), []);
+export async function getMessages(conversationId) {
+  try {
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.map(m => ({ ...m, id: m._id || m.id }));
+  } catch (error) {
+    console.error('getMessages error:', error);
+    return [];
+  }
 }
 
+// ============================================================================
+// Current Conversation (localStorage for session only)
+// ============================================================================
+
 /**
- * Get current active conversation ID
+ * Get current active conversation ID (session-only, uses localStorage)
  * @returns {string|null} Current conversation ID or null
  */
 export function getCurrentConversationId() {
-  return localStorage.getItem(STORAGE_KEYS.CURRENT_CONVERSATION) || null;
+  return localStorage.getItem('finance_chatbot_current_conversation_id') || null;
 }
 
 /**
- * Set current active conversation ID
+ * Set current active conversation ID (session-only, uses localStorage)
  * @param {string|null} id - Conversation ID or null
  */
 export function setCurrentConversationId(id) {
   if (id) {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_CONVERSATION, id);
+    localStorage.setItem('finance_chatbot_current_conversation_id', id);
   } else {
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION);
+    localStorage.removeItem('finance_chatbot_current_conversation_id');
   }
 }
 
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
 /**
- * Clear all chat data from localStorage
+ * Clear all chat data (for debugging)
+ * Note: This only affects client-side state, not server storage
  */
 export function clearAllData() {
-  const conversations = getConversations();
-  
-  // Remove all conversation messages
-  conversations.forEach(c => {
-    localStorage.removeItem(STORAGE_KEYS.CONVERSATION_PREFIX + c.id);
-  });
-  
-  // Remove conversations list and current ID
-  localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
-  localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION);
+  localStorage.removeItem('finance_chatbot_current_conversation_id');
+  console.log('Cleared client-side state. Server data preserved.');
 }
 
 /**
- * Get localStorage usage stats
+ * Get storage stats (placeholder for API-based stats)
  * @returns {Object} Storage stats
  */
 export function getStorageStats() {
-  let totalSize = 0;
-  
-  for (let key in localStorage) {
-    if (key.startsWith('finance_chatbot_')) {
-      totalSize += localStorage.getItem(key).length * 2; // UTF-16 = 2 bytes per char
-    }
-  }
-  
-  const conversations = getConversations();
-  
   return {
-    conversationCount: conversations.length,
-    totalSizeBytes: totalSize,
-    totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
-    estimatedLimitMB: 5 // Conservative estimate
+    conversationCount: 0,
+    totalSizeBytes: 0,
+    totalSizeMB: '0.00',
+    estimatedLimitMB: 'unlimited (server storage)'
   };
 }
 
@@ -338,7 +258,6 @@ export function getStorageStats() {
  * @returns {Object} Grouped conversations
  */
 export function groupConversationsByDate(conversations) {
-  // Handle null/undefined input
   if (!conversations || !Array.isArray(conversations)) {
     return {
       pinned: [],
@@ -369,23 +288,26 @@ export function groupConversationsByDate(conversations) {
   };
   
   conversations.forEach(conv => {
-    if (conv.isPinned) {
-      groups.pinned.push(conv);
+    // Map _id to id for frontend compatibility
+    const mappedConv = { ...conv, id: conv._id || conv.id };
+    
+    if (mappedConv.isPinned) {
+      groups.pinned.push(mappedConv);
       return;
     }
     
-    const date = new Date(conv.updatedAt);
+    const date = new Date(mappedConv.updatedAt);
     
     if (date >= today) {
-      groups.today.push(conv);
+      groups.today.push(mappedConv);
     } else if (date >= yesterday) {
-      groups.yesterday.push(conv);
+      groups.yesterday.push(mappedConv);
     } else if (date >= lastWeek) {
-      groups.lastWeek.push(conv);
+      groups.lastWeek.push(mappedConv);
     } else if (date >= lastMonth) {
-      groups.lastMonth.push(conv);
+      groups.lastMonth.push(mappedConv);
     } else {
-      groups.older.push(conv);
+      groups.older.push(mappedConv);
     }
   });
   
