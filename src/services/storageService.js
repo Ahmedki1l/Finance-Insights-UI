@@ -7,7 +7,7 @@
  * All functions are async and use fetch to call backend endpoints.
  */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8001';
 
 /**
  * Generate a UUID v4 (for temporary IDs before server assigns one)
