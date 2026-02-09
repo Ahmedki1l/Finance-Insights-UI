@@ -9,7 +9,7 @@ COPY package*.json ./
 RUN npm ci 
 
 # Copy environment file for production
-COPY .env.example .env.example
+COPY .env.production .env
 
 # Copy source code
 COPY . .
@@ -40,3 +40,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
+
