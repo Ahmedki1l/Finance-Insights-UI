@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ChartRenderer from './ChartRenderer'
 import GroupedTable from './GroupedTable'
+import AnalysisCards from './AnalysisCards'
 import './MessageBubble.css'
 
 const ROWS_PER_PAGE = 10;
@@ -118,7 +119,7 @@ function PaginatedTable({ table }) {
 }
 
 function MessageBubble({ message, onDrillDown }) {
-  const { role, content, answer, displayedAnswer, chart, table, evidence, isError, isStreaming, isThinking } = message
+  const { role, content, answer, displayedAnswer, chart, table, evidence, analysisCards, isError, isStreaming, isThinking } = message
   const [showEvidence, setShowEvidence] = useState(false)
 
   // For user messages, use content; for bot messages, use final answer directly (no streaming animation)
@@ -173,6 +174,11 @@ function MessageBubble({ message, onDrillDown }) {
             </p>
           )}
         </div>
+
+        {/* Analysis Cards (structured executive analysis) */}
+        {analysisCards && !isStreaming && (
+          <AnalysisCards data={analysisCards} />
+        )}
 
         {/* Chart Visualization */}
         {chart && !isStreaming && (

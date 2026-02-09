@@ -176,6 +176,9 @@ function ChatApp() {
                 case 'chart':
                   updateMessage(botMessageId, { chart: data.data })
                   break
+                case 'analysis_cards':
+                  updateMessage(botMessageId, { analysisCards: data.data })
+                  break
                 case 'evidence':
                   updateMessage(botMessageId, { evidence: data.data })
                   break
