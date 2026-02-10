@@ -86,7 +86,7 @@ function ChatApp() {
       content: content.trim(),
       timestamp: new Date().toISOString()
     }
-    addMessage(userMessage)
+    await addMessage(userMessage)
     setIsLoading(true)
 
     // Create bot message placeholder - starts in "thinking" state
@@ -103,7 +103,7 @@ function ChatApp() {
       isThinking: true,
       timestamp: new Date().toISOString()
     }
-    addMessage(botMessage)
+    await addMessage(botMessage)
 
     try {
       // Build conversation history for context (last 10 turns max)
