@@ -7,7 +7,10 @@
  * All functions are async and use fetch to call backend endpoints.
  */
 
-const API_BASE = 'http://localhost:8001';
+// Get API base URL based on environment (same pattern as App.jsx)
+const API_BASE = import.meta.env.VITE_DEPLOYMENT === 'prod'
+  ? (import.meta.env.VITE_API_BASE_PRODUCTION || '')
+  : (import.meta.env.VITE_API_BASE_LOCAL || 'http://localhost:8001');
 
 /**
  * Generate a UUID v4 (for temporary IDs before server assigns one)
