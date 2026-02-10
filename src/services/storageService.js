@@ -35,7 +35,9 @@ export async function getConversations() {
   try {
     const response = await fetch(`${API_BASE}/api/conversations`);
     if (!response.ok) return [];
-    return await response.json();
+    const data = await response.json();
+    // Map _id to id for frontend compatibility (same as createConversation)
+    return data.map(c => ({ ...c, id: c._id || c.id }));
   } catch (error) {
     console.error('getConversations error:', error);
     return [];
