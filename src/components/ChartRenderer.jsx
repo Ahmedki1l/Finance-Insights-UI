@@ -53,12 +53,23 @@ const ChartRenderer = ({ chartData, onDrillDown }) => {
 
   const cursorStyle = { cursor: 'pointer' };
 
-  // Custom tooltip formatter
+  // Custom tooltip formatter (full number, e.g. 20,000,000)
   const formatValue = (value) => {
     if (typeof value === 'number') {
       return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
     }
     return value;
+  };
+
+  // Compact formatter for AXIS ticks only — abbreviates large values (20M, 1.5M, 250K) so a
+  // full 8-10 digit label like "20,000,000" doesn't overflow and clip the default Y-axis width.
+  const formatAxisTick = (value) => {
+    if (typeof value !== 'number') return value;
+    const abs = Math.abs(value);
+    if (abs >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+    if (abs >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `${(value / 1e3).toFixed(0)}K`;
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
   const renderChart = () => {
@@ -110,7 +121,7 @@ const ChartRenderer = ({ chartData, onDrillDown }) => {
           <LineChart data={data} onClick={(e) => handleChartClick(e)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey={displayKey} tick={{ fill: '#6b7280', fontSize: 12 }} />
-            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={formatValue} />
+            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} width={72} tickFormatter={formatAxisTick} />
             <Tooltip formatter={formatValue} labelFormatter={(value) => data.find(d => d[displayKey] === value)?.name || value} />
             <Legend />
             <Line 
@@ -135,7 +146,7 @@ const ChartRenderer = ({ chartData, onDrillDown }) => {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey={displayKey} tick={{ fill: '#6b7280', fontSize: 12 }} />
-            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={formatValue} />
+            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} width={72} tickFormatter={formatAxisTick} />
             <Tooltip formatter={formatValue} labelFormatter={(value) => data.find(d => d[displayKey] === value)?.name || value} />
             <Area 
               type="monotone" 
@@ -152,7 +163,7 @@ const ChartRenderer = ({ chartData, onDrillDown }) => {
           <ComposedChart data={data} onClick={(e) => handleChartClick(e)}>
             <CartesianGrid stroke="#e5e7eb" />
             <XAxis dataKey={displayKey} tick={{ fill: '#6b7280', fontSize: 12 }} />
-            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={formatValue} />
+            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} width={72} tickFormatter={formatAxisTick} />
             <Tooltip formatter={formatValue} labelFormatter={(value) => data.find(d => d[displayKey] === value)?.name || value} />
             <Legend />
             <Bar dataKey={yKey} barSize={30} fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -201,7 +212,7 @@ const ChartRenderer = ({ chartData, onDrillDown }) => {
               textAnchor={data.length > 5 ? 'end' : 'middle'}
               height={data.length > 5 ? 80 : 40}
             />
-            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={formatValue} />
+            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} width={72} tickFormatter={formatAxisTick} />
             <Tooltip formatter={formatValue} labelFormatter={(value) => data.find(d => d[displayKey] === value)?.name || value} />
             <Bar 
               dataKey={yKey} 

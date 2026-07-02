@@ -62,6 +62,8 @@
 /* Typing cursor - thin blinking line */
 .typing-text {
   display: inline;
+  /* Honour newlines in bot answers (bullet lists, numbered date prompts) while still wrapping */
+  white-space: pre-line;
 }
 
 .typing-cursor {
